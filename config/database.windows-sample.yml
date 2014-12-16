@@ -1,0 +1,7 @@
+
+development:
+  adapter: jdbcmssql
+  driver: net.sourceforge.jtds.jdbc.Driver
+  url: jdbc:jtds:sqlserver://<hostname>/<dbname>;instance=<instance_name>
+  username: sa 
+  password: 

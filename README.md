@@ -6,7 +6,7 @@ This is a mashup of:
 * https://github.com/jwo/ActiveRecord-Without-Rails
 * http://exposinggotchas.blogspot.jp/2011/02/activerecord-migrations-without-rails.html  
 
-Configured for JRuby, JDBC, and Microsoft MSSQL server
+The Gemfile can be configured for a combo of JRuby, JDBC, and Microsoft MSSQL server, as well as for a combo of MRI Ruby (tested on 2.1.2) and SQLite3/Postgres.
 
 ---
 
@@ -49,12 +49,15 @@ $ irb
 
 Pre-requisites
 --------------
-* Java
+
+For the JRuby/JDBC option, you'll need:
+
+* Java (tested on Java 6)
 * JRuby
 * A Mssql database server
 
 Note: This project is configured for  Rails 3.2.13, because I have to use Java 6 in my current environment. 
-Rails 4.0 would force an upgrade of the jdbc drivers, which require Java 7. 
+Rails 4.0 would force an upgrade of the JDBC drivers, which require Java 7. 
 
 
 Usage
@@ -66,7 +69,7 @@ Usage
 2. Unzip the archive.
 3. rename folder to your project name: `mv ActiveRecord-Without-Rails-JDBC-Mssql myproj`
 4. `cd myproj`
-5. `bundle install`  # make sure you have the gems necessary.
+5. `bundle install`
 6. configure the database in config/database.yml
 7. `rake db:version` # check to see that the db config is correct.
 8. `rake --tasks` make sure everything is working okay

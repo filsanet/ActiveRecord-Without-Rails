@@ -9,29 +9,37 @@ namespace :db do
     options = {:charset => 'utf8', :collation => 'utf8_unicode_ci'}
 
     create_db = lambda do |config|
-      ActiveRecord::Base.establish_connection config.merge('database' => nil)
-      ActiveRecord::Base.connection.create_database config['database'], options
+      if config['adapter']!='sqlite3'
+        ActiveRecord::Base.establish_connection config.merge('database' => nil)
+        ActiveRecord::Base.connection.create_database config['database'], options
+      end
       ActiveRecord::Base.establish_connection config
     end
 
     begin
       create_db.call config
-    rescue Mysql::Error => sqlerr
-      if sqlerr.errno == 1405
-        print "#{sqlerr.error}. \nPlease provide the root password for your mysql installation\n>"
-        root_password = $stdin.gets.strip
+    rescue Exception => sqlerr
+      if defined? Mysql::Error and sqlerr.is_a? Mysql::Error
+        if sqlerr.errno == 1405
+          print "#{sqlerr.error}. \nPlease provide the root password for your mysql installation\n>"
+          root_password = $stdin.gets.strip
 
-        grant_statement = <<-SQL
+          grant_statement = <<-SQL
           GRANT ALL PRIVILEGES ON #{config['database']}.* 
             TO '#{config['username']}'@'localhost'
             IDENTIFIED BY '#{config['password']}' WITH GRANT OPTION;
         SQL
 
-        create_db.call config.merge('database' => nil, 'username' => 'root', 'password' => root_password)
+          create_db.call config.merge('database' => nil, 'username' => 'root', 'password' => root_password)
+        else
+          $stderr.puts sqlerr.error
+          $stderr.puts "Couldn't create database for #{config.inspect}, charset: utf8, collation: utf8_unicode_ci"
+          $stderr.puts "(if you set the charset manually, make sure you have a matching collation)" if config['charset']
+        end
       else
-        $stderr.puts sqlerr.error
-        $stderr.puts "Couldn't create database for #{config.inspect}, charset: utf8, collation: utf8_unicode_ci"
-        $stderr.puts "(if you set the charset manually, make sure you have a matching collation)" if config['charset']
+        # We rescued all Exceptions so throw the rest of them.
+        # raise with no parameters reraises the exception in $!
+        raise
       end
     end
   end
@@ -39,10 +47,11 @@ namespace :db do
   task :environment do
     DATABASE_ENV = ENV['DATABASE_ENV'] || 'development'
     MIGRATIONS_DIR = ENV['MIGRATIONS_DIR'] || 'db/migrate'
+    DATABASE_CONFIG_FILE = ENV['DATABASE_CONFIG_FILE'] || 'config/database.yml'
   end
 
   task :configuration => :environment do
-    @config = YAML.load_file('config/database.yml')[DATABASE_ENV]
+    @config = YAML.load_file(DATABASE_CONFIG_FILE)[DATABASE_ENV]
   end
 
   task :configure_connection => :configuration do
@@ -50,7 +59,7 @@ namespace :db do
     ActiveRecord::Base.logger = Logger.new STDOUT if @config['logger']
   end
 
-  desc 'Create the database from config/database.yml for the current DATABASE_ENV'
+  desc 'Create the database from config/database.yml (or supplied in DATABASE_CONFIG_FILE env var) for the current DATABASE_ENV'
   task :create => :configure_connection do
     create_database @config
   end
